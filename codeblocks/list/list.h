@@ -2,12 +2,12 @@
 #define LIST_H_INCLUDED
 
 typedef struct Element {
-    char * data ;
+    void * data ;
     struct Element * previous ;
     struct Element * next ;
 } Element ;
 
-void list_add( Element * where , char * what ) ;
+void list_add( Element * where , void * what ) ;
 
 void list_remove( Element * elem ) ;
 

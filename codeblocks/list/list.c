@@ -4,11 +4,10 @@
 
 #include "list.h"
 
-void list_add( Element * where , char * what )
+void list_add( Element * where , void * what )
 {
     Element * elem = malloc( sizeof(Element) ) ;
-    elem->data = malloc( strlen(what) * sizeof(char) ) ;
-    strcpy( elem->data , what) ;
+    elem->data = what ;
     elem->previous = where ;
     elem->next = where->next ;
     where->next = elem ;
