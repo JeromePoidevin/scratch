@@ -1,7 +1,5 @@
 
 SYSTEMC := /usr/local/systemc-2.2
-ISC := $SYSTEMC/include
-LSC := $SYSTEMC/lib-linux64
 
 OPT := -Wno-deprecated -fpermissive
 OPT += -L$(SYSTEMC)/lib-linux64 -I$(SYSTEMC)/include
@@ -9,7 +7,7 @@ OPT += -L$(SYSTEMC)/lib-linux64 -I$(SYSTEMC)/include
 sim : test_compteur
 	./test_compteur
 
-wave : test_compteur.vcd.vcd
+wave : test_compteur.vcd
 	gtkwave $<
 
 test_compteur : test_% : test_%.cpp %.cpp
