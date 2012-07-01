@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1341170391 source:/home/jerome/Zoouu/codeblocks/dyntab/main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+
