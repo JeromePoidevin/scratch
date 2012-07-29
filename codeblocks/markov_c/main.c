@@ -4,9 +4,10 @@
 
 #include "error_functions.h"
 
+enum { DEBUG=0 } ;
 enum { HASHMUL=37 , NHASH=4093 } ; // hashtable
 enum { NPREFIX=2 , MAXGEN=10 } ; // markov
-enum { FREADBUF=100 } ;
+enum { READBUF=100 } ;
 
 typedef struct State State;
 typedef struct Suffix Suffix;
@@ -70,7 +71,7 @@ State * lookup( char * prefix[NPREFIX], int create )
 // build : read from file, create hashtable with prefix_suffix
 void build(FILE * f)
 {
-    char buf[FREADBUF];
+    char buf[READBUF];
     char fmt[10];
 
     char * prefix[NPREFIX];
@@ -79,13 +80,15 @@ void build(FILE * f)
     Suffix * suffix;
     int i;
 
-    sprintf(fmt, "%%%ds", FREADBUF);
+    sprintf(fmt, "%%%ds", READBUF);
+
+    for (i=0;i<NPREFIX-1;i++) prefix[i] = estrdup("");
 
     while ( fscanf(f, fmt, buf) != EOF )
     {
+        if (DEBUG) printf("%s\n",buf);
         // buf is temp ; dupplicate
         word = estrdup(buf);
-        printf("%s\n",word);
         // lookup in hashtable + create if not found
         sp = lookup(prefix,1);
         // create suffix
@@ -95,7 +98,7 @@ void build(FILE * f)
         // add suffix to hashtable
         sp->suffix = suffix;
         // shift list of prefixes
-        for (i=0;i<NPREFIX-2;i++) prefix[i]=prefix[i+1];
+        for (i=0;i<NPREFIX-1;i++) prefix[i] = prefix[i+1];
         prefix[NPREFIX-1] = word;
     }
 }
@@ -105,18 +108,30 @@ void print_statetab()
     int i,n;
     State * sp;;
     Suffix * suf;
+
+    int length;
+    int stats[10];
+    for (i=0;i<10;i++) stats[i]=0;
+
     for (i=0;i<NHASH;i++)
     {
-        if (statetab[i]==NULL) continue;
+        length=0;
+        if (statetab[i]==NULL) {stats[0]++ ; continue ; }
+
         for ( sp=statetab[i] ; sp!=NULL ; sp=sp->next )
         {
+            length++ ;
             printf("%d : %u :",i,sp);
             for ( n=0 ; n<NPREFIX ; n++ ) printf(" %s",sp->prefix[n]);
             printf(" /");
             for ( suf=sp->suffix ; suf!=NULL ; suf=suf->next ) printf(" %s",suf->word);
             printf("\n");
         }
+        stats[length]++;
     }
+
+    printf("\nLENGTH :\n");
+    for (i=0;i<10;i++) printf("%d : %d\n",i,stats[i]) ;
 }
 
 int main()
@@ -128,7 +143,8 @@ int main()
     s[1] = "hello world";
     printf("%s %s : %d\n" , s[0], s[1], hash(s) );
 
-    f = fopen("man_gcc","r");
+    f = fopen("../../man_gcc","r");
+    if (f==NULL) exit(2);
     build(f);
     fclose(f);
     print_statetab();
