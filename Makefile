@@ -11,4 +11,8 @@ c/% : c/%.c
 c++/% : c++/%.cpp
 	g++ $< -o $@
 
+MARKOV := codeblocks/markov_c
+markov : $(MARKOV)/error_functions.c $(MARKOV)/main.c 
+	gcc -g -pg $+ -o c/markov_gcc
+	cd c && ./markov_gcc && gprof markov_gcc -m gmon.out > markov_gprof.txt
 

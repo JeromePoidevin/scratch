@@ -4,10 +4,11 @@
 
 #include "error_functions.h"
 
-enum { DEBUG=0 } ;
+enum { DEBUG=2 } ;
 enum { HASHMUL=37 , NHASH=4093 } ; // hashtable
-enum { NPREFIX=2 , MAXGEN=10 } ; // markov
+enum { NPREFIX=2 , MAXGEN=100 } ; // markov
 enum { READBUF=100 } ;
+const char * NONWORD = "\t";
 
 typedef struct State State;
 typedef struct Suffix Suffix;
@@ -45,16 +46,31 @@ State * lookup( char * prefix[NPREFIX], int create )
     int i,h;
     State * sp;
 
+    if (DEBUG>1)
+    {
+        printf( "debug : lookup : " );
+        for (i=0;i<NPREFIX;i++) printf( "'%s' " , prefix[i] ) ;
+    }
+
     h = hash(prefix);
     // go through hash_list at statetab[h]
     for ( sp = statetab[h] ; sp != NULL ; sp = sp->next )
     {
         for (i=0;i<NPREFIX;i++)
             if ( strcmp(prefix[i], sp->prefix[i]) != 0 ) break;
-        if (i==NPREFIX) return sp; // found it
+        if (i==NPREFIX)  // found it
+        {
+            if (DEBUG>1) printf(" : %d %x\n" , h , sp ) ;
+            return sp;
+        }
     }
+
     // not found
-    if (! create) return NULL;
+    if (! create)
+    {
+        if (DEBUG>1) printf(" : %d %x\n" , h , NULL ) ;
+        return NULL;
+    }
 
     // create and insert at statetab[h]
     sp = (State *) emalloc(sizeof(State));
@@ -65,6 +81,7 @@ State * lookup( char * prefix[NPREFIX], int create )
     sp->next = statetab[h];
     statetab[h] = sp;
 
+    if (DEBUG>1) printf(" : create %d %x\n" , h , sp ) ;
     return sp;
 }
 
@@ -80,13 +97,15 @@ void build(FILE * f)
     Suffix * suffix;
     int i;
 
+    if (DEBUG) printf("debug : BUILD\n");
+
     sprintf(fmt, "%%%ds", READBUF);
 
-    for (i=0;i<NPREFIX-1;i++) prefix[i] = estrdup("");
+    for (i=0;i<NPREFIX;i++) prefix[i] = NONWORD;
 
     while ( fscanf(f, fmt, buf) != EOF )
     {
-        if (DEBUG) printf("%s\n",buf);
+        if (DEBUG>1) printf("debug : build : %s\n",buf);
         // buf is temp ; dupplicate
         word = estrdup(buf);
         // lookup in hashtable + create if not found
@@ -134,6 +153,39 @@ void print_statetab()
     for (i=0;i<10;i++) printf("%d : %d\n",i,stats[i]) ;
 }
 
+void generate(int nwords)
+{
+    State * sp;
+    Suffix * suf;
+    char * prefix[NPREFIX];
+    char * w;
+    int i;
+    int len,rnd;
+
+    if (DEBUG) printf("debug : GENERATE\n");
+
+    for (i=0;i<NPREFIX;i++) prefix[i]=NONWORD ;
+
+    for (i=0;i<nwords;i++)
+    {
+        sp = lookup(prefix,0);
+        if (DEBUG) printf( "debug : generate : sp = %x\n" , sp ) ;
+        if (sp != NULL)
+        {
+            for ( suf=sp->suffix,len=0 ; suf!=NULL ; suf=suf->next,len++ ) ;
+            if (DEBUG) printf( "debug : generate : len = %d , suf = %x\n" , len , suf ) ;
+            rnd = rand() % len ;
+            for ( suf=sp->suffix,len=0 ; len<rnd ; suf=suf->next,len++ ) ;
+            w = suf->word ;
+            if (strcmp(w,NONWORD) == 0) break ;
+            printf("%s ",w);
+        }
+        memmove( prefix , prefix+1 , (NPREFIX-1)*sizeof(prefix[0]) );
+        prefix[NPREFIX-1] = w;
+    }
+
+}
+
 int main()
 {
     char * s[NPREFIX];
@@ -141,12 +193,13 @@ int main()
 
     s[0] = "toto";
     s[1] = "hello world";
-    printf("%s %s : %d\n" , s[0], s[1], hash(s) );
+    lookup(s,0) ;
 
     f = fopen("../../man_gcc","r");
     if (f==NULL) exit(2);
     build(f);
     fclose(f);
     print_statetab();
+    generate(MAXGEN);
     return 0;
 }
