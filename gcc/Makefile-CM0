@@ -1,0 +1,198 @@
+# CM0 version
+# * cortex-m3 ->  cortex-m0
+#* drop  -D__thumb2__ 
+
+
+INSTALL_DIR=gcc-461-20120705
+TARGET=arm-none-eabi
+
+SRC_DIR=./src
+
+GNU_MIRROR=http://mirror.ibcp.fr/pub/gnu
+
+
+
+
+
+GCC_VER=4.6.1
+BINUTILS_VER=2.21.1
+GMP_VER=5.0.1
+MPFR_VER=3.0.0
+PPL_VER=0.11.2
+M4_VER=1.4.16
+MPC_VER=0.8.2
+NEWLIB_VER=1.19.0
+
+
+GCC_FILE=gcc-$(GCC_VER).tar.bz2
+BINUTILS_FILE=binutils-$(BINUTILS_VER).tar.bz2
+GMP_FILE=gmp-$(GMP_VER).tar.bz2
+MPFR_FILE=mpfr-$(MPFR_VER).tar.bz2
+PPL_FILE=ppl-$(PPL_VER).tar.bz2
+M4_FILE=m4-$(M4_VER).tar.bz2
+MPC_FILE=mpc-$(MPC_VER).tar.gz
+NEWLIB_FILE=newlib-$(NEWLIB_VER).tar.gz
+
+GCC_LOC=$(GNU_MIRROR)/gcc/gcc-$(GCC_VER)/$(GCC_FILE)
+BINUTILS_LOC=$(GNU_MIRROR)/binutils/$(BINUTILS_FILE)
+GMP_LOC=$(GNU_MIRROR)/gmp/$(GMP_FILE)
+MPFR_LOC=$(GNU_MIRROR)/mpfr/$(MPFR_FILE)
+PPL_LOC=http://bugseng.com/products/ppl/download/ftp/releases/$(PPL_VER)/$(PPL_FILE)
+M4_LOC=$(GNU_MIRROR)/m4/$(M4_FILE)
+MPC_LOC=http://www.multiprecision.org/mpc/download/$(MPC_FILE)
+NEWLIB_LOC=ftp://sources.redhat.com/pub/newlib/$(NEWLIB_FILE)
+
+BINUTILS_CONFIGURE_OPTS=--enable-interwork --enable-multilib --with-gnu-as --with-gnu-ld --disable-nls  
+
+#  -N,  --timestamping don't re-retrieve files unless newer than local
+WGET_OPTS= --timestamping -P $(SRC_DIR)
+MAKE_OPTS= -j -l 3.0
+
+
+http_proxy=http://user:mdp@mailserv:3128
+https_proxy=http://user:mdp@mailserv:3128
+ftp_proxy=http://user:mdp@mailserv:3128
+
+export http_proxy https_proxy ftp_proxy
+
+
+get_softwares:
+	wget  $(WGET_OPTS) $(GCC_LOC)
+	wget  $(WGET_OPTS) $(BINUTILS_LOC)
+	wget  $(WGET_OPTS) $(GMP_LOC)
+	wget  $(WGET_OPTS) $(MPFR_LOC)
+	wget  $(WGET_OPTS) $(PPL_LOC)
+	wget  $(WGET_OPTS) $(M4_LOC)
+	wget  $(WGET_OPTS) $(MPC_LOC)
+	wget  $(WGET_OPTS) $(NEWLIB_LOC)
+	 
+
+extract_binutils:	
+	tar xvjf  $(SRC_DIR)/$(BINUTILS_FILE) > $(BINUTILS_FILE).extract.log
+
+extract_gmp:
+	tar xvjf  $(SRC_DIR)/$(GMP_FILE)      > $(GMP_FILE).extract.log
+
+extract_mpfr:
+	tar xvjf  $(SRC_DIR)/$(MPFR_FILE)      > $(MPFR_FILE).extract.log
+
+extract_ppl:
+	tar xvjf  $(SRC_DIR)/$(PPL_FILE)      > $(PPL_FILE).extract.log
+
+extract_m4:
+	tar xvjf  $(SRC_DIR)/$(M4_FILE)      > $(M4_FILE).extract.log
+
+extract_mpc:
+	tar xvzf  $(SRC_DIR)/$(MPC_FILE)      > $(MPC_FILE).extract.log
+
+extract_gcc:
+	tar xvjf  $(SRC_DIR)/$(GCC_FILE)      > $(GCC_FILE).extract.log
+
+extract_newlib:
+	tar xvzf  $(SRC_DIR)/$(NEWLIB_FILE)      > $(NEWLIB_FILE).extract.log
+
+
+
+build_binutils:
+	mkdir -p build/binutils
+	cd build/binutils; ../../binutils-$(BINUTILS_VER)/configure --prefix=$(INSTALL_DIR) --target=$(TARGET)  $(BINUTILS_CONFIGURE_OPTS); \
+	make $(MAKE_OPTS); make install
+
+build_gmp:
+	rm -Rf build/gmp
+	mkdir -p build/gmp
+	cd build/gmp; ../../gmp-$(GMP_VER)/configure --prefix=$(INSTALL_DIR) --enable-cxx;  \
+	make $(MAKE_OPTS); make install
+
+
+build_mpfr:
+	rm -Rf build/mpfr
+	mkdir -p build/mpfr
+	cd build/mpfr; ../../mpfr-$(MPFR_VER)/configure --prefix=$(INSTALL_DIR) --with-gmp=$(INSTALL_DIR) ;  \
+	make $(MAKE_OPTS); make install
+
+
+build_ppl:
+build_ppl:
+	@echo "LD_LIBRARY_PATH : $(LD_LIBRARY_PATH)"
+	@echo "PATH : $(PATH)"
+	rm -Rf build/ppl
+	mkdir -p build/ppl
+	cd build/ppl; ../../ppl-$(PPL_VER)/configure --prefix=$(INSTALL_DIR) --with-gmp-prefix=$(INSTALL_DIR) \
+	CFLAGS=-Wl,-L$(INSTALL_DIR)/lib \
+	CXXFLAGS=-Wl,-L$(INSTALL_DIR)/lib \
+	CPPFLAGS=-I$(INSTALL_DIR)/include;  \
+	make $(MAKE_OPTS); make install
+
+#build_ppl:
+#	rm -Rf build/ppl
+#	mkdir -p build/ppl
+#	cd build/ppl; ../../ppl-$(PPL_VER)/configure --prefix=$(INSTALL_DIR) --with-gmp-prefix=$(INSTALL_DIR);  \
+#	make $(MAKE_OPTS); make install
+
+
+
+
+build_mpc:
+	rm -Rf build/mpc
+	mkdir -p build/mpc
+	cd build/mpc; ../../mpc-$(MPC_VER)/configure --prefix=$(INSTALL_DIR)  --with-gmp=$(INSTALL_DIR);  \
+	make $(MAKE_OPTS); make install
+
+
+
+
+#gcc_pass1:
+#	rm -Rf build/gcc
+#	mkdir -p  build/gcc
+#	cd build/gcc; ../../gcc-$(GCC_VER)/configure --prefix=$(INSTALL_DIR) --target=$(TARGET) \
+#	 --enable-interwork --enable-multilib --enable-languages="c,c++" --with-newlib --with-float=soft \
+#	--with-gmp=$(INSTALL_DIR) --with-mpfr=$(INSTALL_DIR) \
+#	--with-mpc=$(INSTALL_DIR) --with-ppl=$(INSTALL_DIR) \
+#	--without-headers --disable-shared --disable-nls --with-gnu-as --with-gnu-ld --with-system-zlib  ;\
+#	make all-gcc ; make install-gcc
+#
+
+
+# without explicit ppl (pll does some checks on libgmp that seems incorrect)
+gcc_pass1:
+	rm -Rf build/gcc
+	mkdir -p  build/gcc
+	cd build/gcc; ../../gcc-$(GCC_VER)/configure --prefix=$(INSTALL_DIR) --target=$(TARGET) \
+	 --enable-interwork --enable-multilib --enable-languages="c,c++" --with-newlib --with-float=soft \
+	--with-gmp=$(INSTALL_DIR) --with-mpfr=$(INSTALL_DIR) \
+	--with-mpc=$(INSTALL_DIR)  \
+	--without-headers --disable-shared --disable-nls --with-gnu-as --with-gnu-ld --with-system-zlib  ;\
+	make all-gcc ; make install-gcc
+
+
+# Set LD_LIBRARY_PATH at this point
+
+
+build_newlib:
+build_newlib:
+	@echo "LD_LIBRARY_PATH : $(LD_LIBRARY_PATH)"
+	@echo "PATH : $(PATH)"
+	rm -Rf build/newlib
+	mkdir -p  build/newlib
+	cd build/newlib; ../../newlib-$(NEWLIB_VER)/configure --prefix=$(INSTALL_DIR) --target=$(TARGET) \
+	--enable-interwork --disable-newlib-supplied-syscalls --with-gnu-ld --with-gnu-as --disable-shared --disable-multilib; \
+	make   CFLAGS_FOR_TARGET="-ffunction-sections -fdata-sections -mcpu=cortex-m0 -mthumb  -Ofast -D__BUFSIZ__=256" CCASFLAGS="-mcpu=cortex-m0 -mthumb  -Ofast "  ; \
+	make install
+
+
+
+gcc_pass2:
+	cd build/gcc; \
+	make $(MAKE_OPTS) CFLAGS="-mcpu=cortex-m0 -mthumb" CXXFLAGS="-mcpu=cortex-m0 -mthumb" LIBCXXFLAGS="-mcpu=cortex-m0 -mthumb" all  ; \
+	make install
+
+
+
+
+# optionnal
+build_m4:
+	rm -Rf build/m4
+	mkdir -p build/m4
+	cd build/m4; ../../m4-$(M4_VER)/configure --prefix=$(INSTALL_DIR) ;  \
+	make $(MAKE_OPTS); make install
