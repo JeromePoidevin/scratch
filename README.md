@@ -28,10 +28,10 @@ git remote -v
 # View existing remotes
 # origin  https://github.com/github/reactivecocoa.git (fetch)
 # origin  https://github.com/github/reactivecocoa.git (push)
-git remote set-url origin https://github.com/github/ReactiveCocoa.git
+git remote set-url origin https://github.com/JeromePoidevin/scratch.git
+git remote set-url origin ssh://git@github.com/JeromePoidevin/scratch.git
+git remote set-url origin git://github.com/JeromePoidevin/scratch.git
+git remote set-url origin git@github.com:JeromePoidevin/scratch.git
 # Change the 'origin' remote URL
-git remote -v
-# Verify new remote URL
-# origin  https://github.com/github/ReactiveCocoa.git (fetch)
-# origin  https://github.com/github/ReactiveCocoa.git (push)
+
 
