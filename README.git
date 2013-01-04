@@ -17,6 +17,16 @@ git diff
 git push
 git pull
 
+git config --list
+git config --global  -> ~/.gitconfig
+git config -> .git/config
+
+git log
+git log -p
+git log --pretty=oneline
+
+git remote -v
+
 http://stackoverflow.com/questions/5989893/github-how-to-checkout-my-own-repository
 git clone [link to repo here]
 
