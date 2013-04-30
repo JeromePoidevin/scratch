@@ -20,7 +20,7 @@ class node :
     def __str__(self) :
         if self.up==None : up = ""
         else : up = self.up.name
-        return "(%d) %s : %s : %d" % (self.level,self.name,up,len(self.down))
+        return "(%d) %s : %s : %s : %d" % (self.level,self.name,self.filter,up,len(self.down))
 
     def print_tree(self) :
         if not self.filter : return
