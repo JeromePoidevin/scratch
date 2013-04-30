@@ -29,10 +29,11 @@ class node :
             d.print_tree()
 
     def filter_tree(self,regexp) :
-        if re.search(regexp,self.name) :
-            self.filter=true
+        self.filter = False
         for d in self.down :
             self.filter = self.filter or d.filter_tree(regexp)
+        if re.search(regexp,self.name) :
+            self.filter=True
         return self.filter
 
     def show_hide_below(self,show) :
@@ -51,6 +52,23 @@ if __name__ == "__main__" :
     for e in ("zoe","lila","amandine") : node(e,j)
     for e in ("marie","rapha","juju","sasa") : node(e,i)
     for e in ("maxime","heloise") : node(e,a)
+
+    print "\n** full tree **"    
+    pm.print_tree()
     
+    print "\n** hide jerome **"    
+    j.show_hide_below(False)
+    pm.print_tree()
+    
+    print "\n** filter lila : NOT correct ?? **"    
+    pm.filter_tree("lila")
+    pm.print_tree()
+    
+    print "\n** filter toto **"    
+    pm.filter_tree("toto")
+    pm.print_tree()
+    
+    print "\n** filter max **"    
+    pm.filter_tree("max.*")
     pm.print_tree()
     
