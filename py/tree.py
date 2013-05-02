@@ -1,10 +1,11 @@
 #! /bin/env python
-# -*- coding: utf-8 -*-
 
 import re
 
 class node :
 
+    criteria = list()
+    
     def __init__(self,name,up) :
         self.name = name
         self.up = up
@@ -14,30 +15,39 @@ class node :
         else :
             self.level = up.level + 1
             up.down.append(self)
-        self.filter = True
+        self.show = True
         self.gui = None
 
     def __str__(self) :
         if self.up==None : up = ""
         else : up = self.up.name
-        return "(%d) %s : %s : %s : %d" % (self.level,self.name,self.filter,up,len(self.down))
+        return "(%d) %s : %s : %s : %d" % (self.level,self.name,self.show,up,len(self.down))
 
     def print_tree(self) :
-        if not self.filter : return
+        if not self.show : return
         print self.level*" " + str(self)
         for d in self.down :
             d.print_tree()
 
-    def filter_tree(self,regexp) :
-        self.filter = False
+    def show_node(self) :
+        print "debug : %s %s" % node.criteria
+        for (c,v) in node.criteria :
+            if c=='name' and re.search(v,self.name) : return True
+            elif c=='level' and self.level<=v : return True
+        return False
+
+    def find_tree(self,hideall) :
+        if hideall :
+            self.show = False
+        if self.show_node() :
+            self.show = True
         for d in self.down :
-            self.filter = self.filter or d.filter_tree(regexp)
-        if re.search(regexp,self.name) :
-            self.filter=True
-        return self.filter
+            # warning : don't swap ! rhs if ir is not evaluated if lhs is true !
+            self.show = d.find_tree(regexp,hideall) or self.show
+        return self.show
 
     def show_hide_below(self,show) :
-        self.filter = show
+        self.show = show
         for d in self.down :
             d.show_hide_below(show)
 
@@ -60,15 +70,18 @@ if __name__ == "__main__" :
     j.show_hide_below(False)
     pm.print_tree()
     
-    print "\n** filter lila : NOT correct ?? **"    
-    pm.filter_tree("lila")
+    print "\n** filter lila , then juju **"
+    node.criteria = ("name","lila")
+    pm.find_tree(True)
+    pm.find_tree(("name","juju"),False)
+    pm.find_tree(("name","amandine"),False)
     pm.print_tree()
     
-    print "\n** filter toto **"    
-    pm.filter_tree("toto")
+    print "\n** filter level 2 **"    
+    pm.find_tree(("level",2),True)
     pm.print_tree()
     
-    print "\n** filter max **"    
-    pm.filter_tree("max.*")
+    print "\n** filter max or raph **"    
+    pm.find_tree(("name","max.*|raph.*"),True)
     pm.print_tree()
     
