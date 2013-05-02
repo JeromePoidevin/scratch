@@ -30,7 +30,6 @@ class node :
             d.print_tree()
 
     def show_node(self) :
-        print "debug : %s %s" % node.criteria
         for (c,v) in node.criteria :
             if c=='name' and re.search(v,self.name) : return True
             elif c=='level' and self.level<=v : return True
@@ -43,7 +42,7 @@ class node :
             self.show = True
         for d in self.down :
             # warning : don't swap ! rhs if ir is not evaluated if lhs is true !
-            self.show = d.find_tree(regexp,hideall) or self.show
+            self.show = d.find_tree(hideall) or self.show
         return self.show
 
     def show_hide_below(self,show) :
@@ -70,18 +69,22 @@ if __name__ == "__main__" :
     j.show_hide_below(False)
     pm.print_tree()
     
-    print "\n** filter lila , then juju **"
-    node.criteria = ("name","lila")
+    print "\n** filter lila , then juju, then amandine **"
+    node.criteria = [ ("name","lila") ]
     pm.find_tree(True)
-    pm.find_tree(("name","juju"),False)
-    pm.find_tree(("name","amandine"),False)
+    node.criteria = [ ("name","juju") ]
+    pm.find_tree(False)
+    node.criteria = [ ("name","amandine") ]
+    pm.find_tree(False)
     pm.print_tree()
     
-    print "\n** filter level 2 **"    
-    pm.find_tree(("level",2),True)
+    print "\n** filter level 2 **"
+    node.criteria = [ ("level",2) ]
+    pm.find_tree(True)
     pm.print_tree()
     
     print "\n** filter max or raph **"    
-    pm.find_tree(("name","max.*|raph.*"),True)
+    node.criteria = [ ("name","max.*|raph.*") ]
+    pm.find_tree(True)
     pm.print_tree()
     
