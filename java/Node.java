@@ -21,7 +21,7 @@ public class Node {
             this.level = 1 ;
         else {
             this.level = up.level + 1 ;
-            up.down.add(this) ; // NullPointer Error : must postpone 'this' in main
+            // up.down.add(this) ; // NullPointer ERROR : must postpone 'this' in main
         }
         this.show = true ;
     }
@@ -51,7 +51,11 @@ public class Node {
         String [] ej = {"zoe","lila","amandine"} ;
         String [] ei = {"marie","rapha","juju","sasa"} ;
         String [] ea = {"maxime","heloise"} ;
-        for (String e : ej ) new Node(e,j) ;
+        Node n ;
+        for (String e : ej ) {
+            n = new Node(e,j) ;
+            j.down.add(n) ; // NullPointer ERROR
+        }
         for (String e : ei ) new Node(e,i) ;
         for (String e : ea ) new Node(e,a) ;
 
