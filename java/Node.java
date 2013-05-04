@@ -17,29 +17,39 @@ public class Node {
     public Node (String name, Node up) {
         this.name = name ;
         this.up = up ;
+        this.down = new ArrayList<Node>() ;
         if (up==null)
             this.level = 1 ;
         else {
             this.level = up.level + 1 ;
-            // up.down.add(this) ; // NullPointer ERROR : must postpone 'this' in main
+            up.down.add(this) ;
         }
         this.show = true ;
     }
 
-    public String toString() {
+    public String toString () {
         String up ;
         if (this.up==null) up = "" ;
         else               up = this.up.name ;
         return "("+level+") "+name+" : "+show+" : "+up+" : "+down.size() ;
     }
 
-    public void print_tree() {
+    public void print_tree () {
         if (!show) return ;
         String blank = "" ;
         for (int i=0 ; i<level ; i++ ) blank += " " ;
         System.out.println( blank + this ) ;
-        for (Node d : this.down) d.print_tree() ;
+        for (Node d : this.down)
+            d.print_tree() ;
     }
+
+    public void show_hide_below (boolean show) {
+        this.show = show ;
+        for (Node d : this.down)
+            d.show_hide_below(show) ;
+    }
+
+// main
 
     public static void main(String args[]) {
 
@@ -51,17 +61,18 @@ public class Node {
         String [] ej = {"zoe","lila","amandine"} ;
         String [] ei = {"marie","rapha","juju","sasa"} ;
         String [] ea = {"maxime","heloise"} ;
-        Node n ;
-        for (String e : ej ) {
-            n = new Node(e,j) ;
-            j.down.add(n) ; // NullPointer ERROR
-        }
+        for (String e : ej ) new Node(e,j) ;
         for (String e : ei ) new Node(e,i) ;
         for (String e : ea ) new Node(e,a) ;
 
         System.out.println( "\n** full tree **" ) ;
         pm.print_tree() ;
-        
+
+        System.out.println( "\n** hide jerome **" ) ;    
+        j.show_hide_below(false) ;
+        pm.print_tree() ;
+    
+   
     }
 }
 
