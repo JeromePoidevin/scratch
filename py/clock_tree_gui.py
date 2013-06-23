@@ -30,48 +30,77 @@ else :
 
 debug = False
 
-tree_columns = ('level','inst','fanout','cone','ff')
+tree_rows = [ None ]  # item 0 is void because CTSNode starts at 1
 
-data_tree = None
+TOP = None
 
 
 ########################################
-## Filter Buttons
+## Buttons
 
-def setup_filter() :
-    global expand_collapse
-    global expand_string
-    global filter_string
-    global filter_box
+def setup_buttons() :
+    global root
+    global find_level
+    global find_name
 
-    expand_collapse = True
-    filter_string = {}
-    filter_box = {}
+    ## create buttons
 
-    ## create widgets : filter & tree & scroll
+    ## top
 
-    expand_string = tk.StringVar()
-    expand_string.set( 'Expand' )
-    expand_button = tk.Button(root,width=10,textvariable=expand_string)
-    expand_button.grid(row=0,column=0)
-    expand_button.configure(command=expand_tree)
+    expand_all_button = tk.Button(root,width=10,text='Expand (All)')
+    expand_all_button.grid(row=0,column=0,sticky='w')
+    expand_all_button.configure(command=lambda : expand_collapse_all(True) )
+
+    expand_button = tk.Button(root,width=10,text='Expand')
+    expand_button.grid(row=0,column=1,sticky='w')
+    expand_button.configure(command=lambda : expand_collapse(True) )
+
+    collapse_all_button = tk.Button(root,width=10,text='Collapse (All)')
+    collapse_all_button.grid(row=0,column=2,sticky='w')
+    collapse_all_button.configure(command=lambda : expand_collapse_all(False) )
+
+    collapse_button = tk.Button(root,width=10,text='Collapse')
+    collapse_button.grid(row=0,column=3,sticky='w')
+    collapse_button.configure(command=lambda : expand_collapse(False) )
+
+    print_button = tk.Button(root,width=10,text='Print')
+    print_button.grid(row=0,column=99,sticky='e')
+    print_button.configure(command=print_tree )
+
+    ## bottom
+
+    find_level= tk.StringVar()
+    tk.Label(root,text="Level (int)").grid(row=200,column=0)
+    find_level_box=tk.Entry(root,textvariable=find_level,background='white',width=30)
+    find_level_box.grid(row=200,column=1,columnspan=100,sticky='we')
+   #find_level_box.bind('<Return>',find_change);
+
+    find_name= tk.StringVar()
+    tk.Label(root,text="Name (regexp)").grid(row=201,column=0)
+    find_name_box=tk.Entry(root,textvariable=find_name,background='white',width=30)
+    find_name_box.grid(row=201,column=1,columnspan=100,sticky='we')
+   #find_name_box.bind('<Return>',find_change);
+
+    find_all_button = tk.Button(root,width=10,text='Find (All)')
+    find_all_button.grid(row=202,column=0,sticky='w')
+    find_all_button.configure(command=lambda : find_filter(hideall=False,rows='1') )  # 1 is TOP
+
+    find_button = tk.Button(root,width=10,text='Find')
+    find_button.grid(row=202,column=1,sticky='w')
+    find_button.configure(command=lambda : find_filter(hideall=False,rows=tree.selection()) )
+
+    filter_all_button = tk.Button(root,width=10,text='Filter (All)')
+    filter_all_button.grid(row=202,column=2,sticky='w')
+    filter_all_button.configure(command=lambda : find_filter(hideall=True,rows='1') )  # 1 is TOP
 
     filter_button = tk.Button(root,width=10,text='Filter')
-    filter_button.grid(row=0,column=1)
-    filter_button.configure(command=display_tree)
+    filter_button.grid(row=202,column=3,sticky='w')
+    filter_button.configure(command=lambda : find_filter(hideall=True,rows=tree.selection()) )
 
     clear_button = tk.Button(root,width=10,text='Clear')
-    clear_button.grid(row=0,column=2)
-    clear_button.configure(command=filter_clear)
+    clear_button.grid(row=202,column=99)
+    clear_button.configure(command=find_clear)
 
-    for (i,col) in enumerate( tree_columns , 1 ) :
-        filter_string[col]= tk.StringVar()
-        tk.Label(root,text=col).grid(row=i,column=0)
-        filter_box[col]=tk.Entry(root,textvariable=filter_string[col],background='white',width=30)
-        filter_box[col].grid(row=i,column=1,sticky='n')
-        filter_box[col].bind('<Return>',filter_change);
-
-    root.columnconfigure(0,weight=1)
 
 
 ########################################
@@ -81,11 +110,13 @@ def setup_tree() :
     global root
     global tree,tree_columns
 
+    tree_columns = ('level','inst/pin','fanout','cone','ff')
+
     tree = ttk.Treeview(root,columns=tree_columns,show="headings")
-    tree.grid(row=100,column=0,columnspan=3,sticky='nwes')
+    tree.grid(row=100,column=0,columnspan=100,sticky='nwes')
 
     scroll = tk.Scrollbar(root, orient=tk.VERTICAL, command=tree.yview)
-    scroll.grid(row=100,column=3,sticky='ns')
+    scroll.grid(row=100,column=100,sticky='ns')
     tree.configure( yscrollcommand=scroll.set )
 
     root.rowconfigure(100,weight=1)
@@ -99,61 +130,74 @@ def setup_tree() :
     for col in tree_columns :
         tree.heading(col,text=col)
        #tree.heading(col, command=lambda c=col: sort_by_column(c, 0) )
-        tree.column(col,width=10,anchor='center')
+        tree.column(col,width=1,anchor='center')
 
-    tree.column('inst',width=100,anchor='w')
+    tree.column('inst/pin',width=100,anchor='w')
 
     ## tags & bind
 
-    tree.tag_configure('bg_green',background='green' )
-    tree.tag_configure('bg_orange',background='orange' )
-    tree.tag_configure('bg_red',background='red' )
     tree.tag_configure('bg_grey',background='lightgrey')
-    tree.tag_configure('bg_yellow',background='yellow')
     tree.tag_configure('fg_blue',foreground='blue')
-    tree.tag_configure('fg_red',foreground='red')
-    tree.tag_configure('red_grey',foreground='red',background='lightgrey')
+    tree.tag_configure('fg_green',foreground='dark green')
 
    #tree.bind('<<TreeviewSelect>>',row_select)
 
 
 ########################################
-## filter_box[col].bind('<Return>',filter_change);
-## clear_button.configure(command=filter_clear)
 
-def expand_tree() : # TODO
-    global expand_collapse
-    global expand_string
-    global data_tree
+def expand_collapse(show) :
+    global tree
+    global tree_rows
+    for row in tree.selection() :
+        ctsnode = tree_rows[int(row)]
+        ctsnode.show_hide_below(show)
+        if not show : ctsnode.show = True
+    display_tree(TOP)
 
-    for (row,data) in enumerate(data_tree) :
-        tree.item(row,open=expand_collapse )
+def expand_collapse_all(show) :
+    global TOP
+    TOP.show_hide_below(show)
+    if not show : TOP.show = True
+    display_tree(TOP)
 
-    display_tree(data_tree)
+def find_filter(hideall,rows) :
+    global tree
+    global tree_rows
+    global find_level
+    global find_name
+    global debug
 
-    expand_collapse = not expand_collapse
-    if expand_collapse : expand_string.set( 'Expand' )
-    else               : expand_string.set( 'Collapse' )
+    fname = find_name.get()
+    flevel = find_level.get()
+    if debug :
+        print "find_filter : hideall=%s : rows=%s : level=%s : name=%s" % (hideall,str(rows),flevel,fname)
 
+    for row in rows :
+        ctsnode = tree_rows[int(row)]
+        ctsnode.find_tree( hideall=hideall , name=fname , level=flevel )
+    display_tree(TOP)
 
-def filter_change(event) : # TODO
-    global data_tree
-    display_tree(data_tree)
+def find_clear() :
+    global find_level
+    global find_name
+    find_level.set('')
+    find_name.set('')
+    # clear highlights
+    find_filter(hideall=False,rows='1')  # 1 is TOP
+    display_tree(TOP)
 
+def print_tree() :
+    global TOP
+    print "num # level # inst/pin : show : down : fanout cone ff"
+    TOP.print_tree()
 
-def filter_clear() : # TODO
-    global filter_string
-    global data_tree
-    for col in filter_string :
-        filter_string[col].set( '' )
-    display_tree(data_tree)
-    
 
 ########################################
 ## Tree : display / refresh
 
 def color_row(ctsnode) :
     if   ( ctsnode.level < 0 ) : return 'fg_blue'
+    elif ( ctsnode.highlight ) : return 'fg_green'
     else : return ''
 
 
@@ -161,15 +205,18 @@ def create_tree(ctsnode) :
     global tree
 
     if ctsnode.up==None : up = ''
-    else : up = ctsnode.up.name
+    else : up = ctsnode.up.n
+    n = ctsnode.n
     name = ctsnode.name
     level = ctsnode.level
     fanout = ctsnode.fanout
     cone = ctsnode.cone
     ff = ctsnode.ff
 
-    ## row does not exist : create
-    tree.insert(up,'end',name,text='', values=(level,name,fanout,cone,ff) ) # match tree_columns
+    ## row does not exist in GUI : create
+    tree.insert(up,'end',n,text='', values=(level,name,fanout,cone,ff) ) # match tree_columns
+    ## pointer to the original ctsnode
+    tree_rows.append( ctsnode )
 
     for d in ctsnode.down :
         create_tree(d)
@@ -179,18 +226,18 @@ def display_tree(ctsnode) :
     global tree
 
     if ctsnode.up==None : up = ''
-    else : up = ctsnode.up.name
-    name = ctsnode.name
+    else : up = ctsnode.up.n
+    n = ctsnode.n
     show = ctsnode.show
 
     if show :
-        tree.move(name,up,'end')
-        tree.item(name,tag=color_row(ctsnode))
+        tree.move(n,up,'end')
+        tree.item(n,tag=color_row(ctsnode),open=True)
         for d in ctsnode.down :
             display_tree(d)
 
     else :
-        tree.detach(name)
+        tree.detach(n)
 
 
 
@@ -220,14 +267,14 @@ def print_all(event):
 def ctgui() :
 
     global root
-    global data_tree
+    global TOP
 
     root = tk.Tk()
 
-    setup_filter()
+    setup_buttons()
     setup_tree()
-    create_tree(data_tree)
-    display_tree(data_tree)
+    create_tree(TOP)
+    display_tree(TOP)
 
     root.bind_all('<F9>',print_all)
 
@@ -240,32 +287,17 @@ def ctgui() :
 ## standalone __main__
 
 if ( __name__ == "__main__" ) :
-    
+
+    from clock_tree_CTSNode import CTSNode
+
     debug = True
 
-    i = 0
-    parent = ''
-    for ip in ( 'ADC','CATB','SMAP' ) :
-        for u in range(0,12) :
-
-            ## one top-level item every 10
-            level = i % 10
-            if level == 0 : parent = ''
-            else          : level = 1
-
-            ## create inst
-            inst = '%s/U%d' % (ip,u)
-
-            data = { 'parent':parent , 'inst':inst , 'level':level , 'ref':'buf' , 'attr':'?' }
-            data_tree.append( data )
-
-            if debug : print( 'debug: __main__ : %s -> %s' % (inst,data) )
-
-            ## prepare next iteration
-            if level == 0 : parent = inst
-            i += 1
+    TOP = CTSNode('TOP',None,level=-2)
+    clk = CTSNode('clk',TOP)
+    for i in "abcdefghijklmnopqrstuvwxyz" :
+        l = CTSNode(i,clk)
+        for j in "123" :
+            CTSNode(i+j,l)
 
     ctgui()
-
-
 

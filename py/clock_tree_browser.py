@@ -2,8 +2,9 @@
 
 import sys , getopt
 
-import clock_tree_icc3 as cticc
+import clock_tree_icc as cticc
 import clock_tree_gui as ctgui
+from clock_tree_CTSNode import CTSNode
 
 if ( sys.version_info < (2,7) or sys.version_info >= (3,0) ) :
     print( '''
@@ -56,13 +57,14 @@ for o, a in opts:
 if ( len(args)<1 ) :
     usage()
 
-elif ( len(args)==1 ) :
-    cts = cticc.read_cts_icc( args[0] )
+TOP = CTSNode( '' , None , level=-3 )
+for file in args :
+    cts = cticc.read_cts_icc( file , TOP )
 
 
 ########################################
 ## GUI
 
-ctgui.data_tree = cts
+ctgui.TOP = TOP
 ctgui.ctgui()
 
