@@ -5,8 +5,6 @@ import re
 ########################################
 ## quite general class for n-trees
 ##
-## class.criteria = for find & filter
-##
 ## self.up = one parent
 ## self.down = many children
 ## self.show = show or hide
