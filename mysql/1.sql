@@ -33,4 +33,13 @@ VALUES ('chien', 'F', '2008-12-06 05:18:00', 'Caroline'),
 
 SELECT * FROM Animal;
 
+-- http://www.siteduzero.com/informatique/tutoriels/administrez-vos-bases-de-donnees-avec-mysql/remplissage-de-la-base
+
+SOURCE 2.sql;
+
+LOAD DATA LOCAL INFILE '3.csv'
+INTO TABLE Animal
+FIELDS TERMINATED BY ';' ENCLOSED BY '"'
+LINES TERMINATED BY '\n' -- ou '\r\n'
+(espece, sexe, date_naissance, nom, commentaires);
 
