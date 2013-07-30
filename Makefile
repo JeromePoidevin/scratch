@@ -12,8 +12,8 @@ c++/% : c++/%.cpp
 	g++ $< -o $@
 
 java/% : java/%.java
-	javac -classpath ./java $<
-	java  -classpath ./java $(notdir $@)
+	javac -classpath java/out -d java/out $<
+	java  -classpath java/out $(notdir $@)
 
 MARKOV := codeblocks/markov_c
 markov : $(MARKOV)/error_functions.c $(MARKOV)/main.c 
