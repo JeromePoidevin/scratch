@@ -21,6 +21,7 @@ public class clock_tree_icc {
         Matcher m ;
         Pattern reRoot = Pattern.compile( "Printing structure within exceptions of (.*) at root pin" ) ;
         Pattern reTreeStructure = Pattern.compile( " *.([0-9]+). (.*?)" ) ;
+        Pattern reReconvergent = Pattern.compile( ".* reconvergent clock path found" ) ;
         ArrayList<CTSNode> hier = new ArrayList<>() ;
 
         while ( (line=readbuf.readLine()) != null )
@@ -37,6 +38,14 @@ public class clock_tree_icc {
             }
 
             if (clk=="") continue ;
+
+            // tool warnings
+            m = reReconvergent.matcher(line) ;
+            if (m.find())
+            {
+                System.out.println( "Warning : "+clk+line ) ;
+                continue ;
+            }
 
             // line matches tree structure
             m = reTreeStructure.matcher(line) ;
@@ -66,6 +75,7 @@ public class clock_tree_icc {
         CTSNode.debug = true ;
 
         CTSNode TOP = read_cts_icc( "../../py/cts/clk_main.txt" ) ;
+        System.out.println( "\n==== full tree ====\n" ) ;
         TOP.print_tree() ;
     }
 
