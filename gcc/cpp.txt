@@ -1,0 +1,7 @@
+#define HELLO  Hello World !
+HELLO
+#ifdef IF
+ifdef IF
+#else
+else IF
+#endif
