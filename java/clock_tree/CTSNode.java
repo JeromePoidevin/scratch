@@ -64,7 +64,7 @@ public class CTSNode {
     public String toString () {
         if (debug)
             return n+" # "+level+" # "+name+" : "+show+" "+highlight+" : "+down.size()+" : "+fanout+" "+cone+" "+ff ;
-	else
+        else
             return name+" : "+down.size()+" : "+fanout+" "+cone+" "+ff ;
     }
 
