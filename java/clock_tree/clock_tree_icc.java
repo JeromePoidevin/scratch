@@ -74,7 +74,7 @@ public class clock_tree_icc {
         debug = true ;
         CTSNode.debug = true ;
 
-        CTSNode TOP = read_cts_icc( "../../py/cts/clk_main.txt" ) ;
+        CTSNode TOP = read_cts_icc( "clk_main.txt" ) ;
         System.out.println( "\n==== full tree ====\n" ) ;
         TOP.print_tree() ;
     }

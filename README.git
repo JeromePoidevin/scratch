@@ -46,3 +46,5 @@ git remote -v
 # origin  https://github.com/github/ReactiveCocoa.git (fetch)
 # origin  https://github.com/github/ReactiveCocoa.git (push)
 
+http://stackoverflow.com/questions/3777075/ssl-certificate-rejected-trying-to-access-github-over-https-behind-firewall
+
