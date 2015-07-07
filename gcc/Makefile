@@ -21,3 +21,7 @@ gprof :
 	./argv toto tata tutu
 	gprof argv gmon.out
 
+gdb :
+	gcc  argv.c -o argv -g
+	gdb argv toto tata tutu -x gdb.command
+
