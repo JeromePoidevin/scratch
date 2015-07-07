@@ -23,5 +23,5 @@ gprof :
 
 gdb :
 	gcc  argv.c -o argv -g
-	gdb argv toto tata tutu -x gdb.command
+	gdb argv -x gdb.command
 
