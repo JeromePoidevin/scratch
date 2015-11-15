@@ -94,8 +94,9 @@ def read_def( filename ):
         if re.match('COMPONENTS ',line) :
             section = 'COMPONENTS'
             continue
-        elif re.match('END COMPONENTS ',line) :
+        elif re.match('END COMPONENTS',line) :
             section = ''
+            F.close()
             return  ## only read COMPONENTS !
 
         if section != 'COMPONENTS' :
@@ -137,10 +138,10 @@ if ( __name__ == "__main__" ) :
     w.pack() 
 
     if True:    
-        lef['ascdhd_flash1mb'] = (1000000,2000000)
+        lef['ascdhd_flash1mb'] = (3000000,4000000)
         lef['SRAM_8Kx32cm16bw'] = (500000,500000)
         lef['SRAM_1Kx32cm4bw'] = (200000,200000)
-        read_def( 'chip_test.def' )
+        read_def( 'chip_floor.def' )
         nvm = 'U_TOP_LOGIC/U_PDSW/U_NVMCTRL_W/U_NVMCTRL/u_flash'
         ram = 'U_TOP_LOGIC/U_PDSW/U_PICOP_W/U_PICOP/U_RAMS/U_RAM0_W/U_RAM'
         for m in floorplan:
