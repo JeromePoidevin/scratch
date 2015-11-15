@@ -1,4 +1,6 @@
-from Tkinter import *
+
+import Tkinter as tk
+import re
 
 debug = True 
 
@@ -62,6 +64,7 @@ def read_def( filename ):
 
     global debug
     global scale
+    global lef
     global floorplan
     global instances
     scale     = float()
@@ -79,12 +82,12 @@ def read_def( filename ):
         ## size
         m = re.match('DIEAREA \( (\d+) (\d+) \) \( (\d+) (\d+) \)' ,line)
         if m :
-            fp_x1 = m.group(1)
-            fp_y1 = m.group(2)
-            fp_x2 = m.group(3)
-            fp_y2 = m.group(4)
-            scale = min( win_x/(fp_x2-fp_x1) , win_y/(fp_y2-fp-y1) )
-            floorplan[''] = MacroInst('',fp_x1,fp_y1,fp_x2,fp_y2)
+            fpx1 = float(m.group(1))
+            fpy1 = float(m.group(2))
+            fpx2 = float(m.group(3))
+            fpy2 = float(m.group(4))
+            scale = min( win_x/(fpx2-fpx1) , win_y/(fpy2-fpy1) )
+            floorplan[''] = MacroInst('',fpx1,fpy1,fpx2,fpy2)
             continue
 
         ## instances
@@ -98,35 +101,68 @@ def read_def( filename ):
         if section != 'COMPONENTS' :
             continue
 
+        m = re.match('^- (\S+) (\S+) \+ \w+ \( (\d+) (\d+) \) (\w+)',line)
+        if m :
+            inst = m.group(1)
+            cell = m.group(2)
+            x    = int(m.group(3))
+            y    = int(m.group(4))
+            orient = m.group(5)
+            if cell in lef :
+                if orient in ( 'N' , 'S' , 'FN' , 'FS' ) :
+                    (sizex , sizey) = lef[cell]
+                elif orient in ( 'E' , 'W' , 'FE' , 'FW' ) :
+                    (sizey , sizex) = lef[cell]    # rotate
+                else :
+                    print "Warning: LEF cell found , orient unknown : " + line
+                m = MacroInst(inst,x,y,sizex,sizey)
+                floorplan[inst] = m
+            else :
+                i = Inst(inst,x,y)
+                instances[inst] = i
+
 
 ########################################
 ## standalone __main__
 
 if ( __name__ == "__main__" ) :
 
-    master = Tk()
+    lef = dict()
+
+    master = tk.Tk()
     
     win_x = 500
     win_y = 500
-    w = Canvas(master, width=win_x, height=win_y)
-    w.pack()
-    
-   #read_def( 'chip_floor.def' )
+    w = tk.Canvas(master, width=win_x, height=win_y)
+    w.pack() 
 
-    fp_x = float(1200)
-    fp_y = float(900)
-    scale = min( (win_x/fp_x) , (win_y/fp_y) )
-    # floorplan is a regular Rectangle with no fill
-    fp = MacroInst('',0,0,fp_x,fp_y)
-    fp.draw()
-    
-    MacroInst('m1',100,100,200,200).draw(fill='grey')
-    MacroInst('m2',300,300,200,200).draw(fill='blue')
-    Inst('i1',100,100).draw(fill='red')
-    Inst('i2',300,300).draw(fill='green')
+    if True:    
+        lef['ascdhd_flash1mb'] = (1000000,2000000)
+        lef['SRAM_8Kx32cm16bw'] = (500000,500000)
+        lef['SRAM_1Kx32cm4bw'] = (200000,200000)
+        read_def( 'chip_test.def' )
+        nvm = 'U_TOP_LOGIC/U_PDSW/U_NVMCTRL_W/U_NVMCTRL/u_flash'
+        ram = 'U_TOP_LOGIC/U_PDSW/U_PICOP_W/U_PICOP/U_RAMS/U_RAM0_W/U_RAM'
+        for m in floorplan:
+            if m==''    : floorplan[''].draw()
+            elif m==nvm : floorplan[nvm].draw(fill='blue')
+            else        : floorplan[m].draw(fill='grey')
+
+    else:
+        fp_x = float(1200)
+        fp_y = float(900)
+        scale = min( (win_x/fp_x) , (win_y/fp_y) )
+        # floorplan is a regular Rectangle with no fill
+        fp = MacroInst('',0,0,fp_x,fp_y)
+        fp.draw()
+        
+        MacroInst('m1',100,100,200,200).draw(fill='grey')
+        MacroInst('m2',300,300,200,200).draw(fill='blue')
+        Inst('i1',100,100).draw(fill='red')
+        Inst('i2',300,300).draw(fill='green')
 
    
-    mainloop()
+    tk.mainloop()
     
     #w.create_rectangle( (100,100),(300,300), fill='yellow' )
     #w.create_line(0, 0, 200, 100)
