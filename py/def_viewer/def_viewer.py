@@ -1,6 +1,9 @@
 
 import Tkinter as tk
 import re
+import sys
+import gzip
+
 
 ########################################
 ## (def coordinates) -> (win coordinates)
@@ -32,14 +35,14 @@ class Inst :
         return "Inst ( %d , %d ) %s" % (self.x,self.y,self.name)
 
     def draw_point (self,**arg) :  # **arg : key=value options for create_rectangle
-        global w
+        global tkcanva
         if self.point == None :
             ( x  , y  ) = xy_def2win( self.x , self.y )
             ( x1 , y1 ) = ( x-1 , y-1 )
             ( x2 , y2 ) = ( x+1 , y+1 )
-            self.point = w.create_rectangle(x1,y1,x2,y2,arg)
+            self.point = tkcanva.create_rectangle(x1,y1,x2,y2,arg)
         else :
-            w.itemconfig(self.point,arg)
+            tkcanva.itemconfig(self.point,arg)
 
 
 class MacroInst (Inst) :  # Macro extends Inst
@@ -59,19 +62,20 @@ class MacroInst (Inst) :  # Macro extends Inst
         return "MacroInst ( %d , %d ) %s" % (self.x,self.y,self.name)
 
     def draw_bbox (self,**arg) :   # **arg : key=value options for create_rectangle
-        global w
+        global tkcanva
         if self.bbox == None :
             ( x1 , y1 ) = xy_def2win( self.x1 , self.y1 )
             ( x2 , y2 ) = xy_def2win( self.x2 , self.y2 )
-            self.bbox = w.create_rectangle(x1,y1,x2,y2,arg)
+            self.bbox = tkcanva.create_rectangle(x1,y1,x2,y2,arg)
         else :
-            w.itemconfig(self.bbox,arg)
+            tkcanva.itemconfig(self.bbox,arg)
 
 
 ########################################
 ## read LEF file
 ## 1) MACRO
 ## 2) SIZE
+## 3) END <macro>
 
 def read_lef( filename ) :
 
@@ -80,28 +84,46 @@ def read_lef( filename ) :
 
     print( "Info : read_lef '%s'" % filename )
 
-    F = open(filename,'r')
+    if filename[-3:] == '.gz' :
+        F = gzip.open(filename,'rb')
+    else :
+        F = open(filename,'r')
 
-    ## MACRO
-    for line in F :
-        m = re.match('MACRO +(\w+)' ,line)
-        if m :
-            if debug : print line,
-            macro = m.group(1)
-            lef[macro] = (0,0)
-            break
+    test = 0
 
-    ## SIZE
-    for line in F :
-        m = re.match(' *SIZE +(\d+\.?\d*) +BY +(\d+\.*\d*)' ,line)
-        if m :
-            if debug : print line,
-            x = float(m.group(1))
-            y = float(m.group(2))
-            lef[macro] = (x,y)
-            if debug : print "%s : %d x %d" % (macro,x,y)
-            F.close()
-            return
+    while test==0 :
+        test += 1  # when eof , test gets > 1
+
+        ## MACRO
+        for line in F :
+            m = re.match('MACRO +(\w+)' ,line)
+            if m :
+                if debug : print line,
+                macro = m.group(1)
+                lef[macro] = (0,0)
+                break
+
+        ## SIZE
+        for line in F :
+            m = re.match(' *SIZE +(\d+\.?\d*) +BY +(\d+\.*\d*)' ,line)
+            if m :
+                if debug : print line,
+                x = float(m.group(1))
+                y = float(m.group(2))
+                lef[macro] = (x,y)
+                if debug : print "%s : %d x %d" % (macro,x,y)
+                break
+
+        ## END
+        endmacro = 'END '+macro
+        for line in F :
+            if re.match(endmacro ,line) :
+                if debug : print line,
+                macro = ''
+                break
+
+    F.close()
+    return
 
 
 ########################################
@@ -120,12 +142,13 @@ def read_def( filename ) :
     global floorplan
     global instances
     scale     = float()
-    floorplan = dict()
-    instances = dict()
 
     print( "Info : read_def '%s'" % filename )
 
-    F = open(filename,'r')
+    if filename[-3:] == '.gz' :
+        F = gzip.open(filename,'rb')
+    else :
+        F = open(filename,'r')
 
     ## UNITS
     for line in F :
@@ -154,7 +177,7 @@ def read_def( filename ) :
     for line in F :
 
         ## instances
-        m = re.match('^- *(\S+) +(\S+) *\+ *\w+ *\( *(\d+) +(\d+) *\) +(\w+)',line)
+        m = re.match('^- *(\S+) +(\S+) *.*\+ *\w+ *\( *(\d+) +(\d+) *\) +(\w+)',line)
         if m :
             inst = m.group(1)
             cell = m.group(2)
@@ -218,6 +241,25 @@ class Colors :
     def next (self) :
         self.num += 1
         return self.pick( self.num )
+
+
+########################################
+## read hier file for coloring
+
+def read_hier( filename ) :
+
+    debug = False
+    hier_l = list()
+
+    print( "Info : read_hier '%s'" % filename )
+
+    F = open(filename,'r')
+
+    for line in F :
+        hier = line.strip()  # remove white spaces including newline
+        hier_l.append(hier)
+
+    return hier_l
 
 
 ########################################
@@ -298,7 +340,7 @@ def draw_hier( hier_l ) :
 
 def draw_path( inst_l , color ) :
 
-    global w
+    global tkcanva
     global floorplan
     global instances
 
@@ -312,15 +354,18 @@ def draw_path( inst_l , color ) :
             inst.draw_point( fill=color )
             xy_l.append( xy_def2win(inst.x,inst.y) )
 
-    w.create_line( xy_l , fill=color )
+    tkcanva.create_line( xy_l , fill=color )
 
 
-def pin2inst ( line ) :
-    inst = ''
-    m = re.match(' *(\S+)/\w+' , line )
-    if m :
-        inst = m.group(1)
+def pin2inst( line ) :
+    instpin = line.split()[0]
+    inst    = instpin.rsplit('/',1)[0]
     return inst
+   #if instpin.rfind('/') >= 0 :
+   #    (inst,pin) = instpin.rsplit('/',1)
+   #    return inst
+   #else :
+   #    return instpin  # top level ports
 
 
 def read_timing( filename ) :
@@ -361,7 +406,7 @@ def read_timing( filename ) :
         for line in F :
             m = re.match(' *'+start ,line)
             if m :
-                if debug : print line,
+                if debug : print ":"+line,
                 inst = pin2inst( line )
                 inst_l = list()
                 inst_l.append(inst)
@@ -369,10 +414,11 @@ def read_timing( filename ) :
 
         for line in F :
             if re.match(' *'+inst ,line) : continue
-            if debug : print line,
+            if debug : print "::"+line,
             inst = pin2inst( line )
             inst_l.append( inst )
             if inst == end :
+                if debug : print "::END"
                 draw_path( inst_l , color )
                 break
 
@@ -380,63 +426,99 @@ def read_timing( filename ) :
 
 
 ########################################
-## standalone __main__
+## parse command line
 
-if ( __name__ == "__main__" ) :
+def usage() :
+    print """
+def_viewer.py  -def <DEF file> [...]  [-lef <LEF file> ...]  [-color <colors file> ...]  [-timing <timing reports file> ...]  [-window <window size>]
 
-    lef = dict()
+    -def <DEF file> ...
+    -lef <LEF file> ...
+    -color <colors file> ...
+    -timing <timing report file> ...
+    -window <window size 500x500>
+"""
+    sys.exit()
 
-    master = tk.Tk()
-    
-    win_x = 500
-    win_y = 500
-    w = tk.Canvas(master, width=win_x, height=win_y)
-    w.pack() 
 
-    if True :
-        lef['ascdhd_flash1mb'] = (3000000,4000000)
-        lef['SRAM_8Kx32cm16bw'] = (500000,500000)
-        lef['SRAM_1Kx32cm4bw'] = (200000,200000)
-       #read_lef('ascdhd.lef')
-       #read_lef('DPRAM_1Kx32cm4bw.lef')
-       #read_lef('DPRAM_256x32cm4bw.lef')
-       #read_lef('SRAM_1Kx32cm4bw.lef')
-       #read_lef('SRAM_2Kx32cm8bw.lef')
-       #read_lef('SRAM_6Kx32cm16bw.lef')
-       #read_lef('SRAM_8Kx32cm16bw.lef')
+def parse_cmd_line() :
 
-        read_def( 'chip_test.def' )
+    debug = True
 
-        draw_floorplan()
+    argv = sys.argv[1:]
+    if argv==() : usage()
 
-        hier_l = list()
-        hier_l.append( 'U_TOP_LOGIC/U_PDSW/U_CM4' )
-        hier_l.append( 'U_TOP_LOGIC/U_PDSW/U_NVMCTRL' )
-        hier_l.append( 'U_TOP_LOGIC/U_PDSW/U_FLEXRAM' )
-        hier_l.append( 'U_TOP_LOGIC/U_PDSW/U_GCLK' )
-        hier_l.append( 'U_TOP_LOGIC/U_PDSW/U_MCLK' )
-        draw_hier( hier_l )
+    def_l = list()
+    lef_l = list()
+    color_l = list()
+    timing_l = list()
+    window = '500x500'
 
-        read_timing( 'chip_timing.txt' )
+    i = 0
+    while ( i < len(argv) ) :
+        if   argv[i] == '-h' or argv[i] == '-help' : usage()
+        elif argv[i] == '-def' : def_l.append( argv[i+1] )
+        elif argv[i] == '-lef' : lef_l.append( argv[i+1] )
+        elif argv[i] == '-color' : color_l.append( argv[i+1] )
+        elif argv[i] == '-timing' : timing_l.append( argv[i+1] )
+        elif argv[i] == '-window' : window = argv[i+1]
+        else :
+            print "ERROR: unkown option '%s' ; exit" % argv[i]
+            sys.exit(1)
+        i += 2
 
-    else :
-        fp_x = float(1200)
-        fp_y = float(900)
-        scale = min( (win_x/fp_x) , (win_y/fp_y) )
-        # floorplan is a regular Rectangle with no fill
-        fp = MacroInst('',0,0,fp_x,fp_y)
-        fp.draw_bbox()
-        
-        MacroInst('m1',100,100,200,200).draw_bbox(fill='grey')
-        MacroInst('m2',300,300,200,200).draw_bbox(fill='blue')
-        Inst('i1',100,100).draw_point(fill='red')
-        Inst('i2',300,300).draw_point(fill='green')
-    
-        w.create_line(      0,0  ,  100,100  ,  100,0    , fill='black' )
-        w.create_line(   (100,0) , (200,100) , (200,0)   , fill='green' )
-        w.create_line( [  200,0  ,  300,100  ,  300,0  ] , fill='red'   )
-        w.create_line( [ (300,0) , (400,100) , (400,0) ] , fill='blue'  )
+    if debug :
+        print """
+def_viewer.py
+    -def %s
+    -lef %s
+    -color %s
+    -timing %s
+    -window %s
+"""  %  ( def_l , lef_l , color_l , timing_l , window )
 
-   
-    tk.mainloop()
+    return ( def_l , lef_l , color_l , timing_l , window )
+
+
+########################################
+## main
+
+( def_l , lef_l , color_l , timing_l , window ) = parse_cmd_line()
+
+debug = False
+
+if debug :
+    def_l = [ 'chip_prects_leak_route_opt.def.gz' ]
+    lef_l = [ 'ascdhd.lef' , 'DPRAM_1Kx32cm4bw.lef' , 'DPRAM_256x32cm4bw.lef' , 'SRAM_1Kx32cm4bw.lef' , 'SRAM_6Kx32cm16bw.lef' , 'SRAM_8Kx32cm16bw.lef' ]
+    color_l = [ 'def_viewer.color' ]
+    timing_l = [ 'flexram_pnr.txt' ]
+
+
+tkmaster = tk.Tk()
+
+(win_x,win_y) = window.split('x')
+(win_x,win_y) = (int(win_x),int(win_y))
+tkcanva = tk.Canvas(tkmaster, width=win_x, height=win_y)
+tkcanva.pack() 
+
+lef = dict()
+for lef_file in lef_l :
+    read_lef( lef_file )
+
+floorplan = dict()
+instances = dict()
+for def_file in def_l :
+    read_def( def_file )
+
+draw_floorplan()
+
+hier_l = list()
+for color_file in color_l :
+    hier_l += read_hier(color_file)
+draw_hier( hier_l )
+
+for timing_file in timing_l :
+    read_timing( timing_file )
+
+tk.mainloop()
 
