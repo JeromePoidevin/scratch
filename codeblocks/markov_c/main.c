@@ -4,7 +4,7 @@
 
 #include "error_functions.h"
 
-enum { DEBUG=2 } ;
+enum { DEBUG=0 } ;
 enum { HASHMUL=37 , NHASH=4093 } ; // hashtable
 enum { NPREFIX=2 , MAXGEN=100 } ; // markov
 enum { READBUF=100 } ;
@@ -60,7 +60,7 @@ State * lookup( char * prefix[NPREFIX], int create )
             if ( strcmp(prefix[i], sp->prefix[i]) != 0 ) break;
         if (i==NPREFIX)  // found it
         {
-            if (DEBUG>1) printf(" : %d %x\n" , h , sp ) ;
+            if (DEBUG>1) printf(" : %d %p\n" , h , sp ) ;
             return sp;
         }
     }
@@ -68,7 +68,7 @@ State * lookup( char * prefix[NPREFIX], int create )
     // not found
     if (! create)
     {
-        if (DEBUG>1) printf(" : %d %x\n" , h , NULL ) ;
+        if (DEBUG>1) printf(" : %d %p\n" , h , NULL ) ;
         return NULL;
     }
 
@@ -81,7 +81,7 @@ State * lookup( char * prefix[NPREFIX], int create )
     sp->next = statetab[h];
     statetab[h] = sp;
 
-    if (DEBUG>1) printf(" : create %d %x\n" , h , sp ) ;
+    if (DEBUG>1) printf(" : create %d %p\n" , h , sp ) ;
     return sp;
 }
 
@@ -101,7 +101,7 @@ void build(FILE * f)
 
     sprintf(fmt, "%%%ds", READBUF);
 
-    for (i=0;i<NPREFIX;i++) prefix[i] = NONWORD;
+    for (i=0;i<NPREFIX;i++) prefix[i] = (char*) NONWORD;
 
     while ( fscanf(f, fmt, buf) != EOF )
     {
@@ -140,7 +140,7 @@ void print_statetab()
         for ( sp=statetab[i] ; sp!=NULL ; sp=sp->next )
         {
             length++ ;
-            printf("%d : %u :",i,sp);
+            printf("%d : %p :",i,sp);
             for ( n=0 ; n<NPREFIX ; n++ ) printf(" %s",sp->prefix[n]);
             printf(" /");
             for ( suf=sp->suffix ; suf!=NULL ; suf=suf->next ) printf(" %s",suf->word);
@@ -164,16 +164,16 @@ void generate(int nwords)
 
     if (DEBUG) printf("debug : GENERATE\n");
 
-    for (i=0;i<NPREFIX;i++) prefix[i]=NONWORD ;
+    for (i=0;i<NPREFIX;i++) prefix[i] = (char*) NONWORD ;
 
     for (i=0;i<nwords;i++)
     {
         sp = lookup(prefix,0);
-        if (DEBUG) printf( "debug : generate : sp = %x\n" , sp ) ;
+        if (DEBUG) printf( "debug : generate : sp = %p\n" , sp ) ;
         if (sp != NULL)
         {
             for ( suf=sp->suffix,len=0 ; suf!=NULL ; suf=suf->next,len++ ) ;
-            if (DEBUG) printf( "debug : generate : len = %d , suf = %x\n" , len , suf ) ;
+            if (DEBUG) printf( "debug : generate : len = %d , suf = %p\n" , len , suf ) ;
             rnd = rand() % len ;
             for ( suf=sp->suffix,len=0 ; len<rnd ; suf=suf->next,len++ ) ;
             w = suf->word ;
