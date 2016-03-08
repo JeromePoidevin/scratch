@@ -99,6 +99,7 @@ def read_lef( filename ) :
             m = re.match('MACRO +(\w+)' ,line)
             if m :
                 if debug : print line,
+                test = 0
                 macro = m.group(1)
                 lef[macro] = (0,0)
                 break
