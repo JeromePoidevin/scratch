@@ -18,7 +18,8 @@ test_compteur : test_% : test_%.cpp %.cpp
 #### test_fifo
 
 sim2 : test_fifo
-	./test_fifo | egrep 'empty|full|avail|free'
+	./test_fifo | tee test_fifo.log
+	#| egrep 'empty|full|avail|free'
 
 test_fifo : % : %.cpp
 	g++ $(OPT) -o $@ $^ -lsystemc

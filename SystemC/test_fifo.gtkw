@@ -1,0 +1,32 @@
+[*]
+[*] GTKWave Analyzer v3.3.34 (w)1999-2012 BSI
+[*] Mon Mar 14 21:34:46 2016
+[*]
+[dumpfile] "/home/jerome/Zoouu/SystemC/test_fifo.vcd"
+[dumpfile_mtime] "Mon Mar 14 21:29:32 2016"
+[dumpfile_size] 12225
+[savefile] "/home/jerome/Zoouu/SystemC/test_fifo.gtkw"
+[timestart] 0
+[size] 975 576
+[pos] -1 -1
+*-18.175934 260400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 43
+[signals_width] 220
+[sst_expanded] 0
+[sst_vpaned_height] 151
+@8024
+SystemC.out_free[31:0]
+@20000
+-
+@28
+[color] 2
+SystemC.out_full
+@8024
+SystemC.out_available[31:0]
+@20001
+-
+@28
+[color] 2
+SystemC.out_empty
+[pattern_trace] 1
+[pattern_trace] 0
