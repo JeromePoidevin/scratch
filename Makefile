@@ -8,6 +8,8 @@
 c/% : c/%.c
 	gcc $< -o $@
 
+tcp_client_server : % : c/%/client c/%/server
+
 c++/% : c++/%.cpp
 	g++ $< -o $@
 
