@@ -8,7 +8,8 @@
 c/% : c/%.c
 	gcc $< -o $@
 
-tcp_client_server : % : c/%/client c/%/server
+tcp_udp :
+	make all -C c/$@
 
 c++/% : c++/%.cpp
 	g++ $< -o $@
