@@ -13,3 +13,6 @@ The socket() system call creates a new socket. It takes three arguments :
 
 The socket system call returns an entry into the file descriptor table (i.e. a small integer). This value is used for all subsequent references to this socket. If the socket call fails, it returns -1.
 
+
+http://www.cs.virginia.edu/~cs458/material/Redbook-ibm-tcpip-Chp5.pdf
+
