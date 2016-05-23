@@ -34,12 +34,12 @@ class Inst :
     def __str__ (self) :
         return "Inst ( %d , %d ) %s" % (self.x,self.y,self.name)
 
-    def draw_point (self,**arg) :  # **arg : key=value options for create_rectangle
+    def draw_point (self,size,**arg) :  # **arg : key=value options for create_rectangle
         global tkcanva
         if self.point == None :
             ( x  , y  ) = xy_def2win( self.x , self.y )
-            ( x1 , y1 ) = ( x-1 , y-1 )
-            ( x2 , y2 ) = ( x+1 , y+1 )
+            ( x1 , y1 ) = ( x-size , y-size )
+            ( x2 , y2 ) = ( x+size , y+size )
             self.point = tkcanva.create_rectangle(x1,y1,x2,y2,arg)
         else :
             tkcanva.itemconfig(self.point,arg)
@@ -217,7 +217,7 @@ def draw_floorplan() :
 
     for (name,inst) in floorplan.iteritems() :
         if name==''    : inst.draw_bbox()
-        else           : inst.draw_bbox(fill='grey') # inst.draw_point(outline='red',fill='red')
+        else           : inst.draw_bbox(fill='grey') # inst.draw_point(1,outline='red',fill='red')
 
 
 ########################################
@@ -276,7 +276,8 @@ def draw_hier( hier_l ) :
 
     print( "Info : draw_hier" )
 
-    colors = Colors( 'green' , 'blue' , 'orange' , 'lightgreen' , 'lightblue' )
+    colors = Colors( 'yellow green' , 'dodger blue' , 'orange2' , 'indian red' , 'burlywood3' ,
+                     'DarkOliveGreen2' , 'SkyBlue1' , 'sienna1' , 'coral1' , 'khaki3' )
 
     for (h,hier) in enumerate( hier_l ) :
         print "%d %s : %s" % (h,hier,colors.pick(h))
@@ -347,12 +348,16 @@ def draw_path( inst_l , color ) :
 
     xy_l = list()
 
-    for (i,name) in enumerate( inst_l ) :
+    for (i,name_hi) in enumerate( inst_l ) :
+        (name,hi) = name_hi
         inst = floorplan.get(name) or instances.get(name)
         if inst==None : print "%4d    .. not found .. %s" % (i,name)
         else          : print "%4d    %s" % (i,inst)
         if inst != None :
-            inst.draw_point( fill=color )
+            if hi : inst.draw_point( 2 , fill=color , outline='white' )
+            else  : inst.draw_point( 1 , fill=color )
+           # FIXME create_text ignored ?
+           #tkcanva.create_text( inst.x,inst.y , fill=color , text=str(i) , font=('Arial',8) , anchor='n' )
             xy_l.append( xy_def2win(inst.x,inst.y) )
 
     tkcanva.create_line( xy_l , fill=color )
@@ -381,6 +386,8 @@ def read_timing( filename ) :
 
     test = 0
     num = -1
+    hi = False
+    re_comment = re.compile(' *[=\+\*-/:;,#]+')  # space + one or more special character
 
     while test==0 :
         test += 1  # when eof , test gets > 1
@@ -410,14 +417,24 @@ def read_timing( filename ) :
                 if debug : print ":"+line,
                 inst = pin2inst( line )
                 inst_l = list()
-                inst_l.append(inst)
+                inst_l.append( (inst,True) )
+                hi = False
                 break
 
         for line in F :
-            if re.match(' *'+inst ,line) : continue
+
+            if line == '' : continue  # empty line
+            if re_comment.match(line) :  # comment
+                if re.search('True',line) : hi = True
+                elif re.search('False',line) : hi = False
+                continue
+
+            if re.match(' *'+inst ,line) : continue  # (inst) repeated (input followed by output)
+            if re.match(' *\S+ *\(net\)' ,line) : continue # (net)
+
             if debug : print "::"+line,
             inst = pin2inst( line )
-            inst_l.append( inst )
+            inst_l.append( (inst,hi) )
             if inst == end :
                 if debug : print "::END"
                 draw_path( inst_l , color )
