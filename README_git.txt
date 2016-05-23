@@ -10,6 +10,7 @@ git branch --set-upstream scratch scratch/master
 
 git add
 git commit -a
+git reset
 
 git clone https://github.com/JeromePoidevin/scratch.git
 git clone ssh://git@github.com/JeromePoidevin/scratch.git
