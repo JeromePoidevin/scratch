@@ -1,6 +1,7 @@
 
 import javax.swing.* ;
 import java.awt.* ;
+import java.util.HashMap ;
 
 class MainFrame extends JComponent
 {
@@ -9,11 +10,7 @@ class MainFrame extends JComponent
     {
         g.setColor(Color.white) ;
         g.fillRect(0,0,getWidth(),getHeight() ) ;
-        
-        Inst a = new Inst("A",100,100,150,120) ;
-        a.draw(g,Color.blue,false) ;
-        Inst b = new Inst("B",100,40,25,15) ;
-        b.draw(g,Color.green,true) ;
+        def_viewer.draw(g) ;        
     }
 
     @Override
@@ -54,13 +51,24 @@ class Inst
 
 class def_viewer
 {
+    static HashMap<String,Inst> inst = new HashMap<String,Inst>() ;
+    
     public static void main(String[] args)
     {
+        inst.put("A",new Inst("A",100,100,150,120)) ;
+        inst.put("B",new Inst("B",100,40,25,15)) ;
+        
         JFrame fenetre = new JFrame("def_viewer") ;
         fenetre.add( new MainFrame() ) ;
         fenetre.pack() ;
         fenetre.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE) ;
         fenetre.setVisible(true) ;
+    }
+    
+    public static void draw(Graphics g)
+    {
+        inst.get("A").draw(g,Color.blue,false) ;
+        inst.get("B").draw(g,Color.green,true) ;
     }
 }
 
