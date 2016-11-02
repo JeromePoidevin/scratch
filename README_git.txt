@@ -26,6 +26,9 @@ git config -> .git/config
 git log
 git log -p
 git log --pretty=oneline
+git log origin/master..HEAD  # show local commits (not pushed)
+git log origin/master..      # show local commits (not pushed)
+git log @{push}..            # Starting with Git 2.5+ (Q2 2015)
 
 git remote -v
 git remote set-url <remote name> <remote url>
