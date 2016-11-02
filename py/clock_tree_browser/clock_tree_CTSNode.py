@@ -11,94 +11,134 @@ import re
 ##
 ## self.fanout = number of direct children
 ## self.cone = number of all cells below
-## self.ff = number of sink pins
+## self.ff = number of sink (ff) pins
+## self.min = min depth of downstream ff
+## self.max = max depth of downstream ff
 
 
 class CTSNode :
 
     debug = False
     number = 0
+    mode = None
     
-    def __init__(self,name,up,level='') :
+    def __init__(self,name,up,level=None,is_ff=False) :
         CTSNode.number += 1
         self.n = CTSNode.number
         self.name = name
         self.attach(up,level)
         self.down = list()
+        self.is_ff = is_ff
         self.show = True
         self.highlight = False
-        # pointer to gui object (node in Tk Tree)
-        self.gui = None
-        # this is custom for additional attributes ...
+        # statistics
         self.fanout = 0
         self.cone = 0
         self.ff = 0
+        self.min = None
+        self.max = None
 
-    def attach(self,up,level='') :
+    def attach(self,up,level=None) :
         self.up = up
-        if up==None :
-            if level != '' : self.level = int(level)
-            else           : self.level = 0
-        else :
+        if up :
             self.level = up.level + 1
             up.down.append(self)
+        else :
+            if level : self.level = level
+            else     : self.level = 0
 
     def __str__(self) :
         if CTSNode.debug :
-            return "%d # %d # %s : %s %s : %d : %d %d %d" % (self.n,self.level,self.name,self.show,self.highlight,len(self.down),self.fanout,self.cone,self.ff)
+            return "%d # %d # %s : %s %s %s : %d : %d %d %d : %s %s" % (self.n,self.level,self.name,self.show,self.highlight,self.is_ff,len(self.down),self.fanout,self.cone,self.ff,self.min,self.max)
         else :
-            return "%s : %d : %d %d %d" % (self.name,len(self.down),self.fanout,self.cone,self.ff)
+            return "%s : %d : %d %d %d : %s %s" % (self.name,len(self.down),self.fanout,self.cone,self.ff,self.min,self.max)
 
-    def print_tree(self,file=None) :
+    def print_tree(self,file=None,indent=None) :
         if not self.show : return
-        if file == None :
-            print self.level*" " + str(self)
-        else :
-            file.write( self.level*" " + str(self) )
+        if indent : tmp = self.level*indent + str(self)
+        else      : tmp = str(self)
+        if file   : file.write( tmp + "\n" )
+        else      : print tmp
         for d in self.down :
-            d.print_tree(file=file)
+            d.print_tree(file=file,indent=indent)
 
     # show / hide / find
 
-    def show_node(self,name='',level='') :
-        if name!='' and re.search(name,self.name) : return True
-        if str(level)!='' and self.level<=int(level) : return True
+    def show_node( self, name=None, level=None, min=None, max=None, skew=None ) :
+        if name !=None and re.search(name,self.name) : return True
+        if level!=None and self.level == level       : return True
+        if min  !=None and self.ff > 0 and           self.min  <= min  : return True
+        if max  !=None and self.ff > 0 and           self.max  >= max  : return True
+        if skew !=None and self.ff > 0 and (self.max-self.min) >= skew : return True
         return False
 
-    def find_tree(self,hideall=False,name='',level='') :
+    def find_tree( self, hideall=False, name=None, level=None, min=None, max=None, skew=None ) :
         # default : de-highlight , and optionally hide
         if hideall :
             self.show = False
         self.highlight = False
         # does self meet criterias ?
-        if self.show_node(name,level) :
+        if self.show_node(name,level,min,max,skew) :
             self.show = True
             self.highlight = True
         # look down in tree
         for d in self.down :
-            # warning : don't swap ! rhs if ir is not evaluated if lhs is true !
-            self.show = d.find_tree(hideall,name,level) or self.show
-        return self.show
+            d.find_tree(hideall,name,level,min,max,skew)
+            self.show = self.show or d.show
 
     def show_hide_below(self,show) :
         self.show = show
         for d in self.down :
             d.show_hide_below(show)
 
-    # count fanout / cone / ff
+    # count fanout / cone / ff / min / max
     # cumulating cone and ff for all down cells
+    # min and max depth of downstream ff
 
     def statistics(self) :
         self.fanout = len(self.down)
         self.cone = self.fanout
         self.ff = 0
-        if re.search('SINK PIN|MACRO',self.name) :
+        self.min = None
+        self.max = None
+
+        # is ff ?
+#        if CTSNode.mode=='icc' and re.search('SINK PIN|MACRO',self.name) :
+#            is_ff = True
+#        elif CTSNode.mode=='at91' and re.search('\([Ss]ync\)|\([Ll]eaf\)',self.name) :
+#            is_ff = True
+#        elif CTSNode.mode=='ccopt' and re.search('Pin=',self.name) :
+#            is_ff = True
+#        else :
+#            is_ff = False
+        if self.is_ff :
             self.ff = 1
+            self.min = self.level
+            self.max = self.level
+
+        # step down
         for d in self.down :
-            (f,c,ff) = d.statistics()
-            self.cone += c
-            self.ff += ff
-        return ( self.fanout, self.cone, self.ff )
+            d.statistics()
+            self.cone += d.cone
+            if self.ff == 0 :
+                self.ff = d.ff
+                self.min = d.min
+                self.max = d.max
+            elif d.ff > 0 :
+                self.ff += d.ff
+                self.min = min( self.min , d.min )
+                self.max = max( self.max , d.max )
+
+        # checks
+        if self.level == 0 :
+            if self.ff == 0 :
+                print "Warning : root pin with no ff attached : "
+            print self
+#            elif (self.max - self.min) > 10 :
+#                print "Warning : root pin with (max-min) > 10 : " , self
+
+        if self.is_ff and self.fanout > 0 :
+                print "Warning : ff with fanout>0 : " , self
 
 
 
@@ -111,22 +151,31 @@ if ( __name__ == "__main__" ) :
 
     TOP = CTSNode('TOP',None)
     clk = CTSNode('clk',TOP)
-    for i in "abcdefghijklmnopqrstuvwxyz" :
-        l = CTSNode(i,clk)
+    for i in "abcdef" :
+        N1 = CTSNode(i,clk)
+        if i in "ef" : N1.is_ff = True
         for j in "123" :
-            CTSNode(i+j,l)
+            N2 = CTSNode(i+j,N1)
+            for k in "wxyz" :
+                CTSNode(i+j+k,N2,is_ff=True)
+
+    TOP.statistics()
 
     CTSNode.debug = True
 
     print "\n==== full tree ===="
-    TOP.print_tree()
+    TOP.print_tree(indent="  ")
 
     print "\n==== level 2 ===="
     TOP.find_tree( hideall=True , level=2 )
-    TOP.print_tree()
+    TOP.print_tree(indent="  ")
 
     print "\n==== level 2 + some ===="
     TOP.find_tree( hideall=False , name="b2|z" )
-    TOP.print_tree()
+    TOP.print_tree(indent="  ")
+
+    print "\n==== skew >= 2 ===="
+    TOP.find_tree( hideall=True , skew=2 )
+    TOP.print_tree(indent="  ")
 
 

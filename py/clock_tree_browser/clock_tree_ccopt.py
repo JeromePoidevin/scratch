@@ -6,28 +6,45 @@ debug = False
 
 
 ########################################
+## indent_to_level
+## check_indent_vs_level
+
+def indent_to_level( indent ) :
+    return len(indent) / 4
+
+
+def check_indent_vs_level( indent , level ):
+    indent = indent_to_level( indent )
+    level = int(level)
+    if indent != level :
+        print("Error : indent '%d' > depth '%d'" % (indent,level) )
+
+
+########################################
 ## read file
 ## return pointer to top-most CTSNode
 ##
 ## note : use upper case for CTSNode's
 
-def read_cts_icc( filename , TOP=None ):
+def read_cts_ccopt( filename , TOP=None ):
 
     global debug
 
-    print( "Info : read_cts_icc '%s'" % filename )
+    print( "Info : read_cts_ccopt '%s'" % filename )
 
     F = open(filename,'r')
     if TOP == None :
         CTS = CTSNode( filename, None, level=-2 )
     else :
         CTS = CTSNode( filename, TOP )
-    clk = ''
+    clk = None
 
     for line in F :
 
+        line = line.rstrip()
+
         ## clock declaration
-        m = re.match('Printing structure within exceptions of (\w+) at root pin ',line)
+        m = re.match('Dump of clock tree (\S+)',line)
         if m :
             clk = m.group(1)
             CLK = CTSNode( clk, CTS )
@@ -35,33 +52,32 @@ def read_cts_icc( filename , TOP=None ):
             hier.append(CLK)
             continue
 
-        if clk == '' : continue
+        if line == '' : continue
 
-        ## tool warnings
-        if re.match('.* reconvergent clock path found',line) :
-            print("Warning : " + clk + line)
-            continue
+#        ## tool warnings
+#        if re.match('.* reconvergent clock path found',line) :
+#            print("Warning : " + clk + line)
+#            continue
 
         ## line matches tree structure
-        m = re.match(' *\((\d+)\) (.*?)( |\[\w+:)',line)
-        if not m : continue
-
-        level = m.group(1)
-        inst = m.group(2)
-
-        ## test FF
-        if re.search('SINK PIN|MACRO',line) :
-            is_ff = True
+        m = re.match('R\(\S+\):',line)
+        is_ff = False
+        if m :
+            level = 0
         else :
-            is_ff = False
+            m = re.match('([ \|]*._ )(\S+[:=])',line)   # how to grab '\' (backslash) ?
+            if (not m) : continue
+            indent = m.group(1)
+            level = indent_to_level( indent )
+            if (m.group(2) == 'Pin=') :
+                is_ff = True
 
         ## test level + hier
-        level = int(level)
         if level+1 < len(hier) : # step up in hier
             hier = hier[0:level+1]  # level included
-
+    
         UP = hier[-1]
-        CURRENT = CTSNode( line.rstrip() , UP , is_ff=is_ff )
+        CURRENT = CTSNode( line , UP , is_ff=is_ff )
         hier.append(CURRENT)
 
         if debug :
@@ -82,7 +98,7 @@ if ( __name__ == "__main__" ) :
 
     debug = False
 
-    TOP = read_cts_icc( 'clock_tree_report_icc_init_design_CTS_scenario/clk_ahb.txt' )
+    TOP = read_cts_ccopt( 'report_ccopt_debug_clock_trees.rpt')
 
     print "\n==== full tree ===="
     TOP.print_tree()
