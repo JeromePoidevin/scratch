@@ -355,7 +355,7 @@ def draw_path( inst_l , color ) :
         else          : print "%4d    %s" % (i,inst)
         if inst != None :
             if hi : inst.draw_point( 2 , fill=color , outline='white' )
-            else  : inst.draw_point( 1 , fill=color )
+            else  : inst.draw_point( 1 , fill=color , outline=color )
            # FIXME create_text ignored ?
            #tkcanva.create_text( inst.x,inst.y , fill=color , text=str(i) , font=('Arial',8) , anchor='n' )
             xy_l.append( xy_def2win(inst.x,inst.y) )
@@ -382,40 +382,39 @@ def read_timing( filename ) :
 
     F = open(filename,'r')
 
-    colors = Colors( 'red' , 'purple' , 'pink' , 'brown' )
+    colors = Colors( 'red' , 'purple' , 'gold' , 'deep pink' , 'violet red' , 'brown' )
 
     test = 0
     num = -1
     hi = False
-    re_comment = re.compile(' *[=\+\*-/:;,#]+')  # space + one or more special character
 
     while test==0 :
         test += 1  # when eof , test gets > 1
 
         for line in F :
-            m = re.match(' *Startpoint: +(\S+)' ,line)
-            if m :
+            s = line.split()
+            if s and s[0] == 'Startpoint:' :
                 test = 0
                 num += 1
                 color = colors.pick(num)
                 print "----------------------------------------"
                 print "path %d %s" % (num,color)
                 print line,
-                start = m.group(1)
+                start = s[1]
                 break
 
         for line in F :
-            m = re.match(' *Endpoint: +(\S+)' ,line)
-            if m :
+            s = line.split()
+            if s and s[0] == 'Endpoint:' :
                 print line,
-                end = m.group(1)
+                end = s[1]
                 break
     
         for line in F :
-            m = re.match(' *'+start ,line)
-            if m :
+            s = line.split()
+            if s and s[0].startswith(start) :
                 if debug : print ":"+line,
-                inst = pin2inst( line )
+                inst = pin2inst( s[0] )
                 inst_l = list()
                 inst_l.append( (inst,True) )
                 hi = False
@@ -423,19 +422,21 @@ def read_timing( filename ) :
 
         for line in F :
 
-            if line == '' : continue  # empty line
-            if re_comment.match(line) :  # comment
-                if re.search('True',line) : hi = True
-                elif re.search('False',line) : hi = False
+            s = line.split()
+            if not s : continue # empty line
+
+            if s[0][0] in '=+*-/%:;,#' : # first char of first token is a comment
+                if   'True'  in line : hi = True
+                elif 'False' in line : hi = False
                 continue
 
-            if re.match(' *'+inst ,line) : continue  # (inst) repeated (input followed by output)
-            if re.match(' *\S+ *\(net\)' ,line) : continue # (net)
+            if s[0].startswith(inst) : continue  # (inst) repeated (input followed by output)
+            if s[1] == '(net)' : continue # (net)
 
             if debug : print "::"+line,
-            inst = pin2inst( line )
+            inst = pin2inst( s[0] )
             inst_l.append( (inst,hi) )
-            if inst == end :
+            if (inst == end) or (s[0] == end) : # usually Endpoint: <instance> ; but sometimes <pin>
                 if debug : print "::END"
                 draw_path( inst_l , color )
                 break
