@@ -1,4 +1,3 @@
-package gui;
 
 import java.awt.* ;
 import java.awt.event.* ;
@@ -6,8 +5,8 @@ import java.util.* ;
 
 public class def_viewer extends Frame {
     
-    LinkedHashMap<String,MacroInst> floorplan;
-    LinkedHashMap<String,Instance> inst;
+    static LinkedHashMap<String,MacroInst> floorplan = new LinkedHashMap<String,MacroInst> ();
+    static LinkedHashMap<String,Instance> inst = new LinkedHashMap<String,Instance> ();
     
     public def_viewer(int x, int y){
         super("DEF viewers");
